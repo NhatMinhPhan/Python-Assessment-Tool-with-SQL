@@ -2,7 +2,7 @@ This application is created for experiential purposes and not for professional u
 
 # Python Assessment Tool
 
-This tool aims to aid tutors in assessing their tutees' Python knowledge and skills currently with a JSON server, and is expected to implement a SQLite server in the near future as a more secure way of storing data. It consists of account registration and login features in the front end which stores each tutee's individual answers and results while securing their privacy from each other.
+This tool aims to aid tutors in assessing their tutees' Python knowledge and skills with a Microsoft Azure SQL server and database. It consists of account registration and login features in the front end which stores each tutee's individual answers and results while securing their privacy from each other.
 
 For this iteration of the application, it is used as follows: The tutor sets up a JSON server with a .json file, 2 separate .env files for the front- and back-end, a development server or server of another type to run the React code, and another development server to run the Flask code. In total, at least 3 servers are needed to operate the whole program. Then, one is expected to generate two Localhost tunnels, with [pinggy.io](https://pinggy.io/) for example, for tutees to access the application.
 
@@ -11,7 +11,6 @@ For this iteration of the application, it is used as follows: The tutor sets up 
 Besides React, Flask and the latter's accompanying packages, to properly use this application, the following packages must be installed with [pip](https://pypi.org/project/pip/) and [npm](https://nodejs.org/en/learn/getting-started/an-introduction-to-the-npm-package-manager).
 
 - `react-router`: Installed with [npm](https://reactrouter.com/start/declarative/installation). This framework makes routing possible for this application.
-- `json-server`: Installed with [npm](https://www.npmjs.com/package/json-server). This package is used to set up a JSON server for the JSON database, `db.json`.
 - `flask-cors`: Installed with [pip](https://pypi.org/project/flask-cors/). This package is a Flask extension for handling Cross Origin Resource Sharing (CORS).
 - `python-dotenv`: Installed with [pip](https://pypi.org/project/python-dotenv/). This package helps set key-value pairs in a `.env` file as environmental variables.
 - `requests`: Installed with [pip](https://pypi.org/project/requests/). This package is used to handle and send HTTP requests.
