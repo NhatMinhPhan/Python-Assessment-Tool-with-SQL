@@ -9,9 +9,9 @@ CREATE TABLE ADMIN_DATA
 (
     AdminID INTEGER PRIMARY KEY CHECK (AdminID > 0),
     AnswersAreViewable INTEGER DEFAULT 0 CHECK (AnswersAreViewable IN (0, 1)),
-    -- BIT = INTEGER (0, 1)
+    -- BINARY = INTEGER (0, 1)
     EvalsAreViewable INTEGER DEFAULT 1 CHECK (EvalsAreViewable IN (0, 1))
-    -- BIT = INTEGER (0, 1)
+    -- BINARY = INTEGER (0, 1)
 );
 
 CREATE TABLE ACCOUNT
@@ -37,7 +37,7 @@ CREATE TABLE OVERALL_AVERAGE
 CREATE TABLE QUESTION
 (
     QuestionID INTEGER PRIMARY KEY CHECK (QuestionID > 0),
-    Description TEXT CHECK (LENGTH(TRIM(Description)) > 0 AND LENGTH(TRIM(PasswordHash)) <= 1000) NOT NULL,
+    Description TEXT CHECK (LENGTH(TRIM(Description)) > 0 AND LENGTH(TRIM(Description)) <= 1000) NOT NULL,
     AdminID INTEGER NOT NULL,
     FOREIGN KEY (AdminID) REFERENCES ADMIN_DATA(AdminID)
         ON DELETE NO ACTION
@@ -48,7 +48,7 @@ CREATE TABLE ANSWER
 (
     QuestionID INTEGER NOT NULL,
     AccountID INTEGER NOT NULL,
-    AnswerText TEXT CHECK (LENGTH(TRIM(Description)) > 0) NOT NULL,
+    AnswerText TEXT CHECK (LENGTH(TRIM(AnswerText)) > 0) NOT NULL,
     FOREIGN KEY (QuestionID) REFERENCES QUESTION(QuestionID)
         ON DELETE CASCADE
         ON UPDATE NO ACTION,

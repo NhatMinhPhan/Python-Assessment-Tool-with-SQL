@@ -7,8 +7,8 @@ dotenv.load_dotenv(dotenv_path='flask/instance/.env')
 def create_app(test_config = None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
-        SECRET_KEY='dev'
-        # DATABASE = os.path.join(app.instance_path, 'db.json')
+        SECRET_KEY='dev',
+        DATABASE = os.path.join(app.instance_path, 'flaskapp.sqlite')
     )
 
     if test_config is None:
@@ -42,6 +42,10 @@ def create_app(test_config = None):
     app.cli.add_command(dbjson.create_new_database)
     app.cli.add_command(dbjson.reset_all_db)
     app.cli.add_command(dbjson.clear_all_answers)
+
+    # SQLite
+    from . import dbsql
+    dbsql.init_app(app)
 
     return app
 
