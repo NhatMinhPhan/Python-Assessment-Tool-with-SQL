@@ -27,6 +27,8 @@ def init_db():
         db.executescript(f.read().decode('utf8'))
     with current_app.open_resource('sql/adminsetup.sql') as f:
         db.executescript(f.read().decode('utf8'))
+    with current_app.open_resource('sql/questionsetup.sql') as f:
+        db.executescript(f.read().decode('utf8'))
 
 def set_admin_data(answersViewable: int, evalsViewable: int):
     db = get_db()
@@ -50,6 +52,30 @@ def init_db_command():
     """Clear the existing data and create new tables."""
     init_db()
     click.echo('The SQL database has been initialized.')
+
+@click.command('clear-answers')
+def init_db_command():
+    """Clear all answers."""
+    db = get_db()
+    db.execute('DELETE FROM ANSWER');
+    db.commit()
+    click.echo('All answers have been cleared.')
+
+@click.command('clear-evals')
+def init_db_command():
+    """Clear all evaluation results."""
+    db = get_db()
+    db.execute('DELETE FROM EVALUATION_RESULT');
+    db.commit()
+    click.echo('All evaluation results have been cleared.')
+
+@click.command('clear-averages')
+def init_db_command():
+    """Clear all overall average scores."""
+    db = get_db()
+    db.execute('DELETE FROM OVERALL_AVERAGE');
+    db.commit()
+    click.echo('All overall average scores have been cleared.')
 
 @click.command(name='set-admin')
 @click.option(
