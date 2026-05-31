@@ -1,5 +1,5 @@
 from typing import Union, List
-
+from flaskapp.dbsql import get_db
 import os
 
 # In each 'examination_<number>' folder, there are only 2 files: judge.py & response.py.
@@ -44,17 +44,24 @@ def test_case(func):
         return test_case_result
     return wrapper
 
-def get_user_id() -> str:
+def get_user_id_and_question() -> dict[str, int]:
     """
-    Retrieves the user ID from the first line of response.py.
+    Retrieves the user ID and the question number for this judge from the first line of response.py.
 
     Returns:
         A user ID string
     """
+    regex_pattern = r'# ID: (?P<id>.*?) - Question: (?P<question>\d+)'
     with open('response.py', 'r') as file:
         first_line = file.readline().strip()
-        # Remove the '# ID: '
-        return first_line[6:]
+        
+        import re
+        match = re.search(regex_pattern, first_line)
+        assert match, 'Incorrect first line syntax'
+
+        # The dictionary to return contains 'id' and 'question'
+        returned_dict = match.groupdict()
+        return returned_dict
 
 def censor_all_directories_in_list (list_arg: List[str]) -> List[str]:
     """
@@ -111,19 +118,21 @@ def run() -> bool:
     displayable_results = censor_all_directories_in_list(displayable_results)
 
     # Send the results to the database.
-
-    import requests
-    import os
     SENT_STRING : str = '\n'.join(displayable_results)
-    USER_ID = get_user_id()
-    ENDPOINT = f'{os.getenv('SUBMISSIONS_ENDPOINT')}{USER_ID}'
-    user_submission = requests.get(ENDPOINT)
-    assert user_submission.status_code == 200, 'Cannot fetch user_submission'
-    new_submission = user_submission.json()
-    new_submission['evaluation'].append(SENT_STRING)
-    print(f'The new submission: {new_submission}')
-    response = requests.put(ENDPOINT, json=new_submission)
-    print(f'Sent to {ENDPOINT}: {response.status_code}\n{response}')
+    user_data_dict = get_user_id_and_question()
+    USER_ID = user_data_dict['id']
+    QUESTION_NUM = user_data_dict['question']
+
+    db = get_db()
+
+    try:
+        db.execute(
+            'INSERT INTO EVALUATION_RESULT VALUES (?, ?, ?)',
+            (QUESTION_NUM, USER_ID, SENT_STRING)
+        )
+        db.commit()
+    except db.IntegrityError:
+        print(f'Unable to submit evals for user {USER_ID}\'s submission for question {QUESTION_NUM}', flush=True)
     
     return test_ok
 
@@ -231,14 +240,14 @@ def test_case_1() -> Union[bool, str]:
 try:
     import response
 except SyntaxError as e:
-    print('JUDGE: Invalid syntax found in response.py')
+    print('JUDGE: Invalid syntax found in response.py', flush=True)
 
     # Get the name of e's type and eliminate "<class '" and "'>"
     type_name = str(type(e))
     type_name = type_name.replace('<class \'', '')
     type_name = type_name.replace('\'>', '')
 
-    print(f'Details: <{type_name}> {e}')
+    print(f'Details: <{type_name}> {e}', flush=True)
     displayable_results.append('Invalid syntax found in response.py')
     displayable_results.append(f'Details: <{type_name}> {e}')
     displayable_results.append(f'SCORE FOR THIS QUESTION: 0%')
@@ -247,21 +256,24 @@ except SyntaxError as e:
     # Submit to the database
     import sys
     sys.path.append(os.getenv('VENV_LIB_DIRECTORY'))
-    import requests
     import os
     SENT_STRING : str = '\n'.join(displayable_results)
-    USER_ID = get_user_id()
-    ENDPOINT = f'{os.getenv('SUBMISSIONS_ENDPOINT')}{USER_ID}'
-    user_submission = requests.get(ENDPOINT)
-    assert user_submission.status_code == 200, 'Cannot fetch user_submission'
-    new_submission = user_submission.json()
-    new_submission['evaluation'].append(SENT_STRING)
-    print(f'The new submission: {new_submission}')
-    response = requests.put(ENDPOINT, json=new_submission)
-    print(f'Sent to {ENDPOINT}: {response.status_code}\n{response}')
+    user_data_dict = get_user_id_and_question()
+    USER_ID = user_data_dict['id']
+    QUESTION_NUM = user_data_dict['question']
+    db = get_db()
+    try:
+        db.execute(
+            'INSERT INTO EVALUATION_RESULT VALUES (?, ?, ?)',
+            (QUESTION_NUM, USER_ID, SENT_STRING)
+        )
+        db.commit()
+    except db.IntegrityError:
+        print(f'Unable to submit evals for user {USER_ID}\'s submission for question {QUESTION_NUM}', flush=True)
+    
 
 except ModuleNotFoundError as e:
-    print('JUDGE: response.py cannot be found')
+    print('JUDGE: response.py cannot be found', flush=True)
 
     # Get the name of e's type and eliminate "<class '" and "'>"
     type_name = str(type(e))
@@ -277,27 +289,30 @@ except ModuleNotFoundError as e:
     # Submit to the database
     import sys
     sys.path.append(os.getenv('VENV_LIB_DIRECTORY'))
-    import requests
     import os
     SENT_STRING : str = '\n'.join(displayable_results)
-    USER_ID = get_user_id()
-    ENDPOINT = f'{os.getenv('SUBMISSIONS_ENDPOINT')}{USER_ID}'
-    user_submission = requests.get(ENDPOINT)
-    assert user_submission.status_code == 200, 'Cannot fetch user_submission'
-    new_submission = user_submission.json()
-    new_submission['evaluation'].append(SENT_STRING)
-    print(f'The new submission: {new_submission}')
-    response = requests.put(ENDPOINT, json=new_submission)
-    print(f'Sent to {ENDPOINT}: {response.status_code}\n{response}')
+    user_data_dict = get_user_id_and_question()
+    USER_ID = user_data_dict['id']
+    QUESTION_NUM = user_data_dict['question']
+    db = get_db()
+    try:
+        db.execute(
+            'INSERT INTO EVALUATION_RESULT VALUES (?, ?, ?)',
+            (QUESTION_NUM, USER_ID, SENT_STRING)
+        )
+        db.commit()
+    except db.IntegrityError:
+        print(f'Unable to submit evals for user {USER_ID}\'s submission for question {QUESTION_NUM}', flush=True)
+    
 except Exception as e:
-    print('JUDGE: There has been an exception while importing response.py')
+    print('JUDGE: There has been an exception while importing response.py', flush=True)
     
     # Get the name of e's type and eliminate "<class '" and "'>"
     type_name = str(type(e))
     type_name = type_name.replace('<class \'', '')
     type_name = type_name.replace('\'>', '')
 
-    print(f'Details: <{type_name}> {e}')
+    print(f'Details: <{type_name}> {e}', flush=True)
     displayable_results.append('There has been an exception while importing response.py')
     displayable_results.append(f'Details: <{type_name}> {e}')
     displayable_results.append(f'SCORE FOR THIS QUESTION: 0%')
@@ -306,22 +321,24 @@ except Exception as e:
     # Submit to the database
     import sys
     sys.path.append(os.getenv('VENV_LIB_DIRECTORY'))
-    import requests
-    import os
     SENT_STRING : str = '\n'.join(displayable_results)
-    USER_ID = get_user_id()
-    ENDPOINT = f'{os.getenv('SUBMISSIONS_ENDPOINT')}{USER_ID}'
-    user_submission = requests.get(ENDPOINT)
-    assert user_submission.status_code == 200, 'Cannot fetch user_submission'
-    new_submission = user_submission.json()
-    new_submission['evaluation'].append(SENT_STRING)
-    print(f'The new submission: {new_submission}')
-    response = requests.put(ENDPOINT, json=new_submission)
-    print(f'Sent to {ENDPOINT}: {response.status_code}\n{response}')
+    user_data_dict = get_user_id_and_question()
+    USER_ID = user_data_dict['id']
+    QUESTION_NUM = user_data_dict['question']
+    db = get_db()
+    try:
+        db.execute(
+            'INSERT INTO EVALUATION_RESULT VALUES (?, ?, ?)',
+            (QUESTION_NUM, USER_ID, SENT_STRING)
+        )
+        db.commit()
+    except db.IntegrityError:
+        print(f'Unable to submit evals for user {USER_ID}\'s submission for question {QUESTION_NUM}', flush=True)
+    
 else:
     import_failed = False
-    print("JUDGE: Successfully found corresponding response.py!")
-    print('_______________________________________\nTEST CASES:')
+    print("JUDGE: Successfully found corresponding response.py!", flush=True)
+    print('_______________________________________\nTEST CASES:', flush=True)
     displayable_results.append('TEST CASES:')
     import sys
     sys.path.append(os.getenv('VENV_LIB_DIRECTORY'))

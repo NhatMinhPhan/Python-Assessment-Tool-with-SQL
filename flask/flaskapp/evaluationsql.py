@@ -1,9 +1,9 @@
 from flask import (
-    Blueprint, request, make_response, Response
+    Blueprint, request, make_response, Response, g
 )
 from werkzeug.exceptions import abort
 
-from flaskapp.authjson import login_required
+from flaskapp.authsql import login_required, cors_required_headers
 
 from typing import List
 
@@ -11,17 +11,38 @@ from flask_cors import cross_origin
 
 import requests
 import os
+from flaskapp.dbsql import get_db
 
 import sys
 sys.path.append(os.getenv('FLASKAPP_CONTENT_DIRECTORY'))
-from authjson import cors_required_headers
 
 def put_into_database(answer_list: list, endpoint: str):
     """ PUT 'answers' item into the database """
-    answer_dict : dict = { 'answers' : answer_list, 'evaluation' : [] }
-    response = requests.put(endpoint, json = answer_dict)
-    if response.status_code != 200:
+    db = get_db()
+
+    number_of_questions = db.execute(
+        'SELECT COUNT(*) FROM QUESTION'
+    ).fetchone()
+
+    if number_of_questions is None or len(answer_list) != number_of_questions:
+        abort(404, 'Improper admin setup')
+
+    enumerated_answers = list(enumerate(answer_list, start=1))
+    
+    try:
+        account_id = g.user['id']
+        if account_id is None:
+            raise db.IntegrityError('Invalid account ID.')
+        for answer in enumerated_answers:
+            db.execute(
+                'INSERT INTO ANSWER (QuestionID, AccountID, AnswerText) VALUES (?, ?, ?)',
+                (answer[0], account_id, answer[1],)
+            )
+        db.commit()
+        pass
+    except db.IntegrityError:
         abort(404, 'Evaluation failed.')
+        pass
     pass
 
 def censor_all_directories_in_list (list_arg: List[str]) -> List[str]:
@@ -39,13 +60,13 @@ def censor_all_directories_in_list (list_arg: List[str]) -> List[str]:
     import os
     return [item.replace(os.getenv('CENSORED_DIRECTORY_SECTION'), ' ... ') for item in list_arg]
 
-def get_average_overall_score(id: str) -> float:
+def compute_average_overall_score(id: int) -> float:
     """
-    Gets and sends to the database the average overall score from judge_results
-    (rounded to 2 decimal digits), once it no longer gets appended when necessary.
+    Computes the average overall score from judge_results (rounded to
+    2 decimal digits), once it no longer gets appended when necessary.
 
     Parameters:
-        id (str): User ID
+        id (int): User ID
 
     Returns:
         the average overall score from judge_results (rounded to 2 decimal digits)
@@ -56,12 +77,15 @@ def get_average_overall_score(id: str) -> float:
     # Round the float(score) to 2 decimal digits (as used in judge.py).
     # Take the sum of all these scores and divide it by len(judge_results) to get the average score
     score_sum: float = 0.0
+    db = get_db()
 
-    submission = requests.get(f'{os.getenv('SUBMISSIONS_ENDPOINT')}{id}').json()
-    print(f'Submission for ave overall score: {submission}')
-    judge_results = submission['evaluation']
+    result_rows = db.execute(
+        'SELECT * FROM EVALUATION_RESULT WHERE AccountID = ? ORDER BY QuestionID ASC', (id,)
+    ).fetchall()
+    assert result_rows, 'result_rows is None'
 
-    assert judge_results, 'judge_results is None'
+    judge_results = [result_row['EvalText'] for result_row in result_rows]
+    assert len(judge_results) > 0, 'judge_results is None'
 
     for result in judge_results:
         # Extract the final sentence of result
@@ -73,18 +97,30 @@ def get_average_overall_score(id: str) -> float:
 
 def submit_average_overall_score(id: str) -> None:
     """
-    Submits the pre-calculated average overall score.
+    Inserts to the database the pre-calculated average overall score.
 
     Parameters:
         id (str): User ID
     """
-    overall_average = get_average_overall_score(id)
-    user_submission = requests.get(f'{os.getenv('SUBMISSIONS_ENDPOINT')}{id}').json()
-    assert user_submission, 'user_submission is None'
-    user_submission['overall-average'] = overall_average
-    response = requests.put(f'{os.getenv('SUBMISSIONS_ENDPOINT')}{id}', json = user_submission)
-    if response.status_code != 200:
+    db = get_db()
+    overall_average = compute_average_overall_score()
+
+    average_exists = db.execute(
+        'SELECT * FROM OVERALL_AVERAGE WHERE AccountID = ?', (id,)
+    ).fetchone()
+    try:
+        if average_exists is None:
+            db.execute(
+                'INSERT INTO OVERALL_AVERAGE (AccountID, Average) VALUES (?, ?)', (id, overall_average)
+            )
+        else:
+            db.execute(
+                'UPDATE OVERALL_AVERAGE SET Average = ? WHERE AccountID = ?', (overall_average, id,)
+            )
+        db.commit()
+    except db.IntegrityError:
         abort(500, 'Evaluation failed.')
+        
 
 def launch_evaluation(id: str, answer_list: List[str]) -> None:
     """
@@ -102,7 +138,7 @@ def launch_evaluation(id: str, answer_list: List[str]) -> None:
         assert isinstance(answer_list[i], str), 'There is a non-string element in answer_list'
         try:
             with open(f'flask/flaskapp/examinations/examination_{i}/response.py', 'w') as file:
-                file.write(f'# ID: {id}\n\n')
+                file.write(f'# ID: {id} - Question {i}\n\n')
                 file.write(answer_list[i])
         except FileNotFoundError as e: # If the parent directory does not exist
             print(f'<FileNotFoundError> examination_{i} failed: {e}')
@@ -129,10 +165,12 @@ def launch_evaluation(id: str, answer_list: List[str]) -> None:
 bp = Blueprint('eval', __name__, url_prefix='/eval')
 
 @cross_origin # Enables CORS
-@bp.route('/submit/<id>', methods=['PUT'])
-# @login_required
-def submit(id: str):
+@bp.route('/submit', methods=['PUT'])
+@login_required
+def submit():
     if request.method == 'PUT':
+        id = g.user['id']
+
         print(f"Putting {id}'s submission into the database...")
         answers : List = request.json['answers']
         print(f"{id}:\n{answers}")
@@ -145,23 +183,32 @@ def submit(id: str):
     return Response(status=403, headers=cors_required_headers, response='Inaccessible.')
     
 @cross_origin # Enables CORS
-@bp.route('/view/<id>', methods=['GET'])
+@bp.route('/view', methods=['GET'])
 # @login_required
-def determine_viewability(id: str):
+def determine_viewability():
     '''
     Returns a dictionary of 2 entries indicating if the code should be viewable or not.
     Unused for now.
     '''
     if request.method == 'GET':
+        id = g.user['id']
+        db = get_db()
+
         print(f'Determining viewability settings for {id}...')
-        # GET admin-data from the JSON database
-        # NOTE: admin_data will store a list because of the endpoint used, explaining why [0] is used (it only has 1 item).
-        admin_data = requests.get(os.getenv('ADMINDATA_ENDPOINT')).json()[0]
 
-        # GET the user's submission data from the JSON database
+        # Obtain admin_data from the SQLite database
+        admin_id = 1 # This is a locally-run app, so only 1 admin is possible.
+        admin_data = db.execute(
+            'SELECT * FROM ADMIN_DATA WHERE AdminID = ?', (admin_id,)
+        ).fetchone()
+
+        # Obtain the user's submission data from the SQLite database
         user_info = requests.get(f'{os.getenv('SUBMISSIONS_ENDPOINT')}{id}').json()
+        user_info = db.execute(
+            'SELECT * FROM ANSWER WHERE AccountID = ?', (id,)
+        ).fetchall()
 
-        if (not admin_data) or (not user_info):
+        if admin_data is None or user_info is None:
             return Response(status=500, headers=[('Access-Control-Allow-Origin', '*')], response='Viewability undetermined')
         
         response_body = {
@@ -169,13 +216,13 @@ def determine_viewability(id: str):
             'submitted': True,
 
             # Indicates if the user's submission is to be displayed (uneditable)
-            'answers_viewable': bool(admin_data['answers_viewable']),
+            'answers_viewable': bool(admin_data['AnswersAreViewable']),
 
             # Indicates if the evaluation of the user's submission is to be displayed
-            'evaluation_viewable': bool(admin_data['evaluation_viewable'])
+            'evaluation_viewable': bool(admin_data['EvalsAreViewable'])
         }
 
-        if ('answers' not in user_info) or len(user_info['answers']) <= 0:
+        if len(user_info) <= 0:
             # If the user has not yet submitted their answers
             response_body['submitted'] = False
             response_body['answers_viewable'] = False
@@ -190,42 +237,61 @@ def determine_viewability(id: str):
     return Response(status=403, headers=cors_required_headers, response='Inaccessible')
 
 @cross_origin # Enables CORS
-@bp.route('/results/<id>', methods=['GET'])
-def get_evaluation_results(id: str):
+@bp.route('/results', methods=['GET'])
+def get_evaluation_results():
     if request.method == 'GET':
-        submission_json = requests.get(f'{os.getenv('SUBMISSIONS_ENDPOINT')}{id}').json()
-        if not submission_json:
-            return Response(status=500, headers=cors_required_headers, response='Inaccessible')
-        if 'evaluation' not in submission_json:
-            return Response(status=404, headers=cors_required_headers, response='\'evaluation\' not found.')
-        if 'overall-average' not in submission_json:
-            return Response(status=404, headers=cors_required_headers, response='\'overall-average\' not found.')
-        evaluation_text = submission_json['evaluation']
-        overall_average = submission_json['overall-average']
+        id = g.user['id']
+        db = get_db()
+
+        user_evals = db.execute(
+            '''
+            SELECT * FROM EVALUATION_RESULT
+            WHERE AccountID = ?
+            ORDER BY QuestionID ASC
+            ''', (id,)
+        ).fetchall()
+        if user_evals is None:
+            return Response(status=404, headers=cors_required_headers, response='No evaluation results for this user can be found.')
         
-        # The last item in evaluation_text or 'evaluation' in the JSON is the overall average score.
+        overall_average = db.execute(
+            'SELECT * FROM OVERALL_AVERAGE WHERE AccountID = ?', (id,)
+        ).fetchone()
+        if overall_average is None:
+            return Response(status=404, headers=cors_required_headers, response='The overall average for this user cannot be found.')
+
+        evaluation_text = [eval['EvalText'] for eval in user_evals]
+        overall_average = overall_average['Average']
+        
         evaluation_text.append(f'Your overall average score is: {overall_average}%')
         evaluation_text = censor_all_directories_in_list(evaluation_text)
         response_body = {
             'evaluation': evaluation_text
         }
         
-        print(f'Evaluation_text: {evaluation_text}', type(evaluation_text))
+        print(f'Evaluation_text: {evaluation_text}', type(evaluation_text), flush=True)
         import json
         response_body_json = json.dumps(response_body)
         return Response(status=200, headers=cors_required_headers, response=response_body_json, content_type='application/json')
     return Response(status=403, headers=cors_required_headers, response='Inaccessible')
 
 @cross_origin
-@bp.route('/user-code/<id>', methods=['GET'])
-def view_user_code(id: str):
+@bp.route('/user-code/', methods=['GET'])
+def view_user_code():
     if request.method == 'GET':
-        submission_json = requests.get(f'{os.getenv('SUBMISSIONS_ENDPOINT')}{id}').json()
-        if not submission_json:
-            return Response(status=500, headers=cors_required_headers, response='Inaccessible')
-        if 'answers' not in submission_json:
-            return Response(status=404, headers=cors_required_headers, response='\'answers\' not found.')
-        submission = submission_json['answers']
+        id = g.user['id']
+        db = get_db()
+
+        user_ans = db.execute(
+            '''
+            SELECT * FROM ANSWER
+            WHERE AccountID = ?
+            ORDER BY QuestionID ASC
+            ''', (id,)
+        ).fetchall()
+        if user_ans is None:
+            return Response(status=404, headers=cors_required_headers, response='No submissions from this user can be found.')
+
+        submission = [answer['AnswerText'] for answer in user_ans]
         response_body = {
             'submission': submission
         }

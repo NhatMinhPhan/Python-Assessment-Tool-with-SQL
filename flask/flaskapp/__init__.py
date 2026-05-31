@@ -30,26 +30,16 @@ def create_app(test_config = None):
     
     # URL rule for index
     app.add_url_rule('/', endpoint='index')
-
-    #from . import authjson
-    #app.register_blueprint(authjson.bp)
     
     from . import authsql
     app.register_blueprint(authsql.bp)
 
-    from . import evaluationjson
-    app.register_blueprint(evaluationjson.bp)
-
-    # JSON server
-    from . import dbjson
-    app.cli.add_command(dbjson.create_new_database)
-    app.cli.add_command(dbjson.reset_all_db)
-    app.cli.add_command(dbjson.clear_all_answers)
+    from . import evaluationsql
+    app.register_blueprint(evaluationsql.bp)
 
     # SQLite
     from . import dbsql
     dbsql.init_app(app)
-
 
     return app
 
