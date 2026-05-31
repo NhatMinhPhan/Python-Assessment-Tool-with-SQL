@@ -30,9 +30,34 @@ def init_db():
     with current_app.open_resource('sql/questionsetup.sql') as f:
         db.executescript(f.read().decode('utf8'))
 
+def restore_default_admin():
+    db = get_db()
+    adminID = 1 # There is only 1 admin in use of this program (run locally), so use 1 by default
+
+    available_admin = db.execute(
+        'SELECT * FROM ADMIN_DATA WHERE AdminID = ?', (adminID,)
+    ).fetchone()
+    if available_admin is None:
+        with current_app.open_resource('sql/adminsetup.sql') as f:
+            db.executescript(f.read().decode('utf8'))
+    else:
+        db.execute('''
+            UPDATE ADMIN_DATA
+            SET AnswersAreViewable = 0, EvalsAreViewable = 1
+            WHERE AdminID = ?;
+        ''', (adminID,))
+        db.commit()
+
 def set_admin_data(answersViewable: int | None, evalsViewable: int | None):
     db = get_db()
     adminID = 1 # There is only 1 admin in use of this program (run locally), so use 1 by default
+
+    available_admin = db.execute(
+        'SELECT * FROM ADMIN_DATA WHERE AdminID = ?', (adminID,)
+    ).fetchone()
+    if available_admin is None:
+        with current_app.open_resource('sql/adminsetup.sql') as f:
+            db.executescript(f.read().decode('utf8'))
 
     if answersViewable is not None:
         db.execute('''
@@ -78,6 +103,12 @@ def clear_averages_command():
     db.commit()
     click.echo('All overall average scores have been cleared.')
 
+@click.command('restore-admin')
+def restore_default_admin_command():
+    """Restore default admin information."""
+    restore_default_admin()
+    click.echo('The default admin information has been restored.')
+
 @click.command(name='set-admin')
 @click.option(
     '-a', '--answers',
@@ -110,3 +141,4 @@ def init_app(app):
     app.cli.add_command(clear_evals_command)
     app.cli.add_command(clear_averages_command)
     app.cli.add_command(set_admin_command)
+    app.cli.add_command(restore_default_admin_command)
