@@ -16,6 +16,38 @@ cors_required_headers = [
     ('Access-Control-Allow-Headers', 'Content-Type')
 ]
 
+############# DUPLICATE CHECK FOR LEGACY FRONT-END CODE #####################
+@cross_origin # Enables CORS
+@bp.route('duplicatecheck/register/<username>', methods=['GET'])
+def duplicate_check_register_link(username: str):
+    print(f'Checking username duplicates: ')
+    if request.method == 'GET':
+        db = get_db()
+        duplicate_username = db.execute(
+            'SELECT * FROM ACCOUNT WHERE Username = ?', (username,)
+        ).fetchone()
+
+        if (duplicate_username is not None):
+            return Response(status=403, headers=cors_required_headers, response='The username has already been picked.')
+        return Response(status=200, headers=cors_required_headers, response="The username has not been picked.")
+    return Response(status=403, headers=cors_required_headers, response='Inaccessible')
+
+@cross_origin # Enables CORS
+@bp.route('duplicatecheck/login/<username>', methods=['GET'])
+def duplicate_check_login_link(username: str):
+    print(username)
+    if request.method == 'GET':
+        db = get_db()
+        duplicate_username = db.execute(
+            'SELECT * FROM ACCOUNT WHERE Username = ?', (username,)
+        ).fetchone()
+
+        if (duplicate_username is not None):
+            return Response(status=200, headers=cors_required_headers, response='The username has already been picked.')
+        return Response(status=403, headers=cors_required_headers, response="The username has not been picked.")
+    return Response(status=403, headers=cors_required_headers, response='Inaccessible')
+###########################################################
+
 @cross_origin # Enables CORS
 @bp.route('/register', methods=('GET', 'POST'))
 def register():
@@ -49,7 +81,8 @@ def register():
             
         if error:
             return Response(status=404, headers=cors_required_headers, response=error)
-    return Response(status=200, headers=cors_required_headers)
+        return Response(status=200, headers=cors_required_headers)
+    return Response(status=403, headers=cors_required_headers, response='Inaccessible')
     
 @cross_origin # Enables CORS
 @bp.route('login', methods=['GET','POST'])
