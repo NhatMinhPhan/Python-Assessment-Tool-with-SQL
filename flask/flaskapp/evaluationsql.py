@@ -164,7 +164,7 @@ def launch_evaluation(id: str, answer_list: List[str]) -> None:
     
 bp = Blueprint('eval', __name__, url_prefix='/eval')
 
-@cross_origin # Enables CORS
+@cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True) # Enables CORS
 @bp.route('/submit', methods=['PUT'])
 @login_required
 def submit():
@@ -182,9 +182,9 @@ def submit():
         return Response(status=200, headers=cors_required_headers, response='The submission has been processed successfully.')
     return Response(status=403, headers=cors_required_headers, response='Inaccessible.')
     
-@cross_origin # Enables CORS
+@cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True) # Enables CORS
 @bp.route('/view', methods=['GET'])
-# @login_required
+@login_required
 def determine_viewability():
     '''
     Returns a dictionary of 2 entries indicating if the code should be viewable or not.
@@ -209,7 +209,7 @@ def determine_viewability():
         ).fetchall()
 
         if admin_data is None or user_info is None:
-            return Response(status=500, headers=[('Access-Control-Allow-Origin', '*')], response='Viewability undetermined')
+            return Response(status=500, headers=cors_required_headers, response='Viewability undetermined')
         
         response_body = {
             # Indicates if the user has made a submission
@@ -236,8 +236,9 @@ def determine_viewability():
         return Response(status=200, headers=cors_required_headers, response=response_body_json, content_type='application/json')
     return Response(status=403, headers=cors_required_headers, response='Inaccessible')
 
-@cross_origin # Enables CORS
+@cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True) # Enables CORS
 @bp.route('/results', methods=['GET'])
+@login_required
 def get_evaluation_results():
     if request.method == 'GET':
         id = g.user['AccountID']
@@ -274,8 +275,9 @@ def get_evaluation_results():
         return Response(status=200, headers=cors_required_headers, response=response_body_json, content_type='application/json')
     return Response(status=403, headers=cors_required_headers, response='Inaccessible')
 
-@cross_origin
+@cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True)
 @bp.route('/user-code/', methods=['GET'])
+@login_required
 def view_user_code():
     if request.method == 'GET':
         id = g.user['AccountID']

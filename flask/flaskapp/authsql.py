@@ -1,4 +1,5 @@
 import functools
+import os
 
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for, Response
@@ -11,13 +12,14 @@ from flask_cors import cross_origin
 bp = Blueprint('auth', __name__, url_prefix="/auth")
 
 cors_required_headers = [
-    ('Access-Control-Allow-Origin', '*'),
+    ('Access-Control-Allow-Origin', os.getenv('FRONTEND_ENDPOINT')),
     ('Access-Control-Allow-Methods', '*'),
-    ('Access-Control-Allow-Headers', 'Content-Type')
+    ('Access-Control-Allow-Headers', 'Content-Type'),
+    ('Access-Control-Allow-Credentials', 'true')
 ]
 
 ############# DUPLICATE CHECK FOR LEGACY FRONT-END CODE #####################
-@cross_origin # Enables CORS
+@cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True) # Enables CORS
 @bp.route('duplicatecheck/register/<username>', methods=['GET'])
 def duplicate_check_register_link(username: str):
     print(f'Checking username duplicates: ')
@@ -32,7 +34,7 @@ def duplicate_check_register_link(username: str):
         return Response(status=200, headers=cors_required_headers, response="The username has not been picked.")
     return Response(status=403, headers=cors_required_headers, response='Inaccessible')
 
-@cross_origin # Enables CORS
+@cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True) # Enables CORS
 @bp.route('duplicatecheck/login/<username>', methods=['GET'])
 def duplicate_check_login_link(username: str):
     print(username)
@@ -48,7 +50,7 @@ def duplicate_check_login_link(username: str):
     return Response(status=403, headers=cors_required_headers, response='Inaccessible')
 ###########################################################
 
-@cross_origin # Enables CORS
+@cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True) # Enables CORS
 @bp.route('/register', methods=('GET', 'POST'))
 def register():
     if request.method == 'POST':
@@ -84,7 +86,7 @@ def register():
         return Response(status=200, headers=cors_required_headers)
     return Response(status=403, headers=cors_required_headers, response='Inaccessible')
     
-@cross_origin # Enables CORS
+@cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True) # Enables CORS
 @bp.route('login', methods=['GET','POST'])
 def login():
     if request.method == 'POST':
@@ -118,9 +120,9 @@ def load_logged_in_user():
     else:
         g.user = get_db().execute(
             'SELECT * FROM ACCOUNT WHERE AccountID = ?', (user_id,)
-        )
+        ).fetchone()
 
-@cross_origin
+@cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True)
 @bp.route('/logout', methods=['GET'])
 def logout():
     if request.method == 'GET':
