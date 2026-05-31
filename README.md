@@ -65,11 +65,9 @@ The `.env.local` file _(the former of the aforementioned .env files)_ must consi
 
 `VITE_TOTAL_QUESTIONS`: Total number of questions to give the tutees (**MUST** be used/modified for the assessment tool to display the correct number of questions)\
 `VITE_USER_NAME`: Placeholder username\
-`VITE_USER_ID`: Placeholder user ID\
-`VITE_ANSWER_SUBMISSION_ENDPOINT`: JSON server endpoint that stores users' submissions of their code\
-`VITE_ACCOUNTS`: JSON server endpoint that stores users' credentials
+`VITE_USER_ID`: Placeholder user ID
 
-`VITE_FLASK_SERVER`: URL to the Flask (development) server's index page\
+`VITE_FLASK_SERVER`: URL to the Flask API (development) server's index page\
 `VITE_FLASK_REGISTER_DUPLICATECHECK`: The Flask server route which verifies whether the username being registered is a duplicate of one in the database, meaning it has already been taken\
 `VITE_FLASK_LOGIN_DUPLICATECHECK`: The Flask server route which verifies whether the username whose associated account the user is logging in is a duplicate of one in the database, meaning the aforementioned account is in the database\
 `VITE_FLASK_REGISTER`: The Flask server route for registering new accounts\
