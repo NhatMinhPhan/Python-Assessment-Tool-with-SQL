@@ -32,7 +32,7 @@ function App({ getSessionUsername, getSessionUserId, clearLoginSession }) {
     // Fetch visibility information from the server,
     // including if the user has already submitted their answers.
     // If they have, setHasSubmitted(true).
-    fetch(import.meta.env.VITE_FLASK_EVAL_SET_VIEWABILITY + USER_ID)
+    fetch(import.meta.env.VITE_FLASK_EVAL_SET_VIEWABILITY)
       .then((response) => response.json())
       .then((visibilityInfo) => {
         if (visibilityInfo["submitted"] === true) {
@@ -78,12 +78,12 @@ function App({ getSessionUsername, getSessionUserId, clearLoginSession }) {
     }
 
     if (hasSubmitted) {
-      fetch(import.meta.env.VITE_FLASK_EVAL_RESULTS + USER_ID)
+      fetch(import.meta.env.VITE_FLASK_EVAL_RESULTS)
         .then((response) => response.json()) //  Response is a dictionary with 1 key 'evaluation'. Get its value.
         .then((json) => {
           setEvaluationResults(json.evaluation);
         });
-      fetch(import.meta.env.VITE_FLASK_EVAL_USERCODE + USER_ID)
+      fetch(import.meta.env.VITE_FLASK_EVAL_USERCODE)
         .then((response) => response.json()) //  Response is a dictionary with 1 key 'submission'. Get its value.
         .then((json) => {
           arrOfAnswers.current = json.submission;
@@ -131,7 +131,7 @@ function App({ getSessionUsername, getSessionUserId, clearLoginSession }) {
       body: JSON.stringify(submission),
     };
 
-    fetch(import.meta.env.VITE_FLASK_EVAL_SUBMIT + USER_ID, requestOptions)
+    fetch(import.meta.env.VITE_FLASK_EVAL_SUBMIT, requestOptions)
       .then((response) => response.json())
       .then((json) => {
         updateVisibilitySettings();
