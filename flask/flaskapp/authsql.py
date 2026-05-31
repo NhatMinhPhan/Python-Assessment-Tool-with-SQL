@@ -71,7 +71,7 @@ def register():
                 db.execute(
                     '''
                     INSERT INTO ACCOUNT (Username, PasswordHash, AdminID)
-                    VALUES (?, ?)
+                    VALUES (?, ?, ?)
                     ''',
                     (username, generate_password_hash(password), admin_id)
                 )
@@ -104,8 +104,8 @@ def login():
 
         if error is None:
             session.clear()
-            session['user_id'] = user['id']
-            return Response(status=200, headers=cors_required_headers, response=f'The user ID is: {user['id']}')
+            session['user_id'] = user['AccountID']
+            return Response(status=200, headers=cors_required_headers, response=f'The user ID is: {user['AccountID']}')
         else:
             return Response(status=403, headers=cors_required_headers, response=error)
     return Response(status=403, headers=cors_required_headers, response='Inaccessible')

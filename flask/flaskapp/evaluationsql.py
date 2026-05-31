@@ -30,7 +30,7 @@ def put_into_database(answer_list: list, endpoint: str):
     enumerated_answers = list(enumerate(answer_list, start=1))
     
     try:
-        account_id = g.user['id']
+        account_id = g.user['AccountID']
         if account_id is None:
             raise db.IntegrityError('Invalid account ID.')
         for answer in enumerated_answers:
@@ -169,7 +169,7 @@ bp = Blueprint('eval', __name__, url_prefix='/eval')
 @login_required
 def submit():
     if request.method == 'PUT':
-        id = g.user['id']
+        id = g.user['AccountID']
 
         print(f"Putting {id}'s submission into the database...")
         answers : List = request.json['answers']
@@ -191,7 +191,7 @@ def determine_viewability():
     Unused for now.
     '''
     if request.method == 'GET':
-        id = g.user['id']
+        id = g.user['AccountID']
         db = get_db()
 
         print(f'Determining viewability settings for {id}...')
@@ -240,7 +240,7 @@ def determine_viewability():
 @bp.route('/results', methods=['GET'])
 def get_evaluation_results():
     if request.method == 'GET':
-        id = g.user['id']
+        id = g.user['AccountID']
         db = get_db()
 
         user_evals = db.execute(
@@ -278,7 +278,7 @@ def get_evaluation_results():
 @bp.route('/user-code/', methods=['GET'])
 def view_user_code():
     if request.method == 'GET':
-        id = g.user['id']
+        id = g.user['AccountID']
         db = get_db()
 
         user_ans = db.execute(
