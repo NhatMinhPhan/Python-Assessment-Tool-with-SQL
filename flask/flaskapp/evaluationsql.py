@@ -103,7 +103,7 @@ def submit_average_overall_score(id: str) -> None:
         id (str): User ID
     """
     db = get_db()
-    overall_average = compute_average_overall_score()
+    overall_average = compute_average_overall_score(int(id))
 
     average_exists = db.execute(
         'SELECT * FROM OVERALL_AVERAGE WHERE AccountID = ?', (id,)
@@ -165,9 +165,12 @@ def launch_evaluation(id: str, answer_list: List[str]) -> None:
 bp = Blueprint('eval', __name__, url_prefix='/eval')
 
 @cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True) # Enables CORS
-@bp.route('/submit', methods=['PUT'])
+@bp.route('/submit/', methods=['PUT', 'OPTIONS'])
 @login_required
 def submit():
+    # Handle the Preflight check immediately
+    if request.method == 'OPTIONS':
+        return Response(status=200, headers=cors_required_headers)
     if request.method == 'PUT':
         id = g.user['AccountID']
 
@@ -183,7 +186,7 @@ def submit():
     return Response(status=403, headers=cors_required_headers, response='Inaccessible.')
     
 @cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True) # Enables CORS
-@bp.route('/view', methods=['GET'])
+@bp.route('/view/', methods=['GET'])
 @login_required
 def determine_viewability():
     '''
@@ -237,7 +240,7 @@ def determine_viewability():
     return Response(status=403, headers=cors_required_headers, response='Inaccessible')
 
 @cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True) # Enables CORS
-@bp.route('/results', methods=['GET'])
+@bp.route('/results/', methods=['GET'])
 @login_required
 def get_evaluation_results():
     if request.method == 'GET':

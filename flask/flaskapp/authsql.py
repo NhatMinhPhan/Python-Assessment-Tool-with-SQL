@@ -51,8 +51,11 @@ def duplicate_check_login_link(username: str):
 ###########################################################
 
 @cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True) # Enables CORS
-@bp.route('/register', methods=('GET', 'POST'))
+@bp.route('/register', methods=['GET', 'POST', 'OPTIONS'])
 def register():
+    # Handle the Preflight check immediately
+    if request.method == 'OPTIONS':
+        return Response(status=200, headers=cors_required_headers)
     if request.method == 'POST':
         request_json = request.json # gets the body data
         username = request_json['username']
@@ -87,8 +90,11 @@ def register():
     return Response(status=403, headers=cors_required_headers, response='Inaccessible')
     
 @cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True) # Enables CORS
-@bp.route('login', methods=['GET','POST'])
+@bp.route('login', methods=['GET','POST', 'OPTIONS'])
 def login():
+    # Handle the Preflight check immediately
+    if request.method == 'OPTIONS':
+        return Response(status=200, headers=cors_required_headers)
     if request.method == 'POST':
         request_json = request.json # gets the body data
         username = request_json['username']
@@ -134,10 +140,16 @@ def logout():
 def login_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
+        # If it's a preflight check, let it pass through unhindered!
+        if request.method == 'OPTIONS':
+            return view(**kwargs)
         if g.user is None:
             print(f'Unable to proceed to {view.__name__} view function as login is required.', flush=True)
-            import os
-            return redirect(os.getenv('LOGIN_REQUIRED_ENDPOINT'))
+            return Response(
+                status=401, 
+                headers=cors_required_headers, 
+                response='Login required.'
+            )
         
         return view(**kwargs)
 
