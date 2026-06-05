@@ -20,14 +20,26 @@ def put_into_database(answer_list: list, endpoint: str):
     """ PUT 'answers' item into the database """
     db = get_db()
 
-    number_of_questions = db.execute(
+    print('Checking # of questions...', flush=True)
+
+    number_of_questions_row = db.execute(
         'SELECT COUNT(*) FROM QUESTION'
     ).fetchone()
 
-    if number_of_questions is None or len(answer_list) != number_of_questions:
+    if number_of_questions_row is None:
+        print('number_of_questions_row is None', flush=True)
+        abort(404, 'Improper admin setup')
+
+    # Extract the raw integer from the first column index
+    number_of_questions = number_of_questions_row[0]
+
+    if len(answer_list) != number_of_questions:
+        print('len(answer_list) != number_of_questions', flush=True)
         abort(404, 'Improper admin setup')
 
     enumerated_answers = list(enumerate(answer_list, start=1))
+
+    print('Now putting answers into the SQLite!!!', flush=True)
     
     try:
         account_id = g.user['AccountID']
@@ -39,6 +51,7 @@ def put_into_database(answer_list: list, endpoint: str):
                 (answer[0], account_id, answer[1],)
             )
         db.commit()
+        print('Insertion into ANSWERS completed!', flush=True)
         pass
     except db.IntegrityError:
         abort(404, 'Evaluation failed.')
