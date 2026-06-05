@@ -3,7 +3,7 @@ from flask import (
 )
 from werkzeug.exceptions import abort
 
-from flaskapp.authsql import login_required, cors_required_headers
+from flaskapp.authsql import login_required
 
 from typing import List
 
@@ -164,29 +164,26 @@ def launch_evaluation(id: str, answer_list: List[str]) -> None:
     
 bp = Blueprint('eval', __name__, url_prefix='/eval')
 
+@bp.route('/submit', methods=['POST'], strict_slashes=False)
 @cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True) # Enables CORS
-@bp.route('/submit/', methods=['PUT', 'OPTIONS'])
 @login_required
 def submit():
-    # Handle the Preflight check immediately
-    if request.method == 'OPTIONS':
-        return Response(status=200, headers=cors_required_headers)
-    if request.method == 'PUT':
+    if request.method == 'POST':
         id = g.user['AccountID']
 
         print(f"Putting {id}'s submission into the database...")
         answers : List = request.json['answers']
         print(f"{id}:\n{answers}")
-        url = f'{os.getenv('SUBMISSIONS_ENDPOINT')}{id}'
+        url = f"{os.getenv('SUBMISSIONS_ENDPOINT')}{id}"
         put_into_database(answers, url)
         print("Launching evaluation...")
         launch_evaluation(id = id, answer_list = answers)
         print("Completing evaluation...")
-        return Response(status=200, headers=cors_required_headers, response='The submission has been processed successfully.')
-    return Response(status=403, headers=cors_required_headers, response='Inaccessible.')
+        return Response(status=200, response='The submission has been processed successfully.')
+    return Response(status=403, response='Inaccessible.')
     
+@bp.route('/view', methods=['GET'], strict_slashes=False)
 @cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True) # Enables CORS
-@bp.route('/view/', methods=['GET'])
 @login_required
 def determine_viewability():
     '''
@@ -206,13 +203,12 @@ def determine_viewability():
         ).fetchone()
 
         # Obtain the user's submission data from the SQLite database
-        user_info = requests.get(f'{os.getenv('SUBMISSIONS_ENDPOINT')}{id}').json()
         user_info = db.execute(
             'SELECT * FROM ANSWER WHERE AccountID = ?', (id,)
         ).fetchall()
 
         if admin_data is None or user_info is None:
-            return Response(status=500, headers=cors_required_headers, response='Viewability undetermined')
+            return Response(status=500, response='Viewability undetermined')
         
         response_body = {
             # Indicates if the user has made a submission
@@ -236,11 +232,11 @@ def determine_viewability():
         import json
         response_body_json = json.dumps(response_body) # Converts dict to JSON
         
-        return Response(status=200, headers=cors_required_headers, response=response_body_json, content_type='application/json')
-    return Response(status=403, headers=cors_required_headers, response='Inaccessible')
+        return Response(status=200, response=response_body_json, content_type='application/json')
+    return Response(status=403, response='Inaccessible')
 
+@bp.route('/results', methods=['GET'], strict_slashes=False)
 @cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True) # Enables CORS
-@bp.route('/results/', methods=['GET'])
 @login_required
 def get_evaluation_results():
     if request.method == 'GET':
@@ -255,13 +251,13 @@ def get_evaluation_results():
             ''', (id,)
         ).fetchall()
         if user_evals is None:
-            return Response(status=404, headers=cors_required_headers, response='No evaluation results for this user can be found.')
+            return Response(status=404, response='No evaluation results for this user can be found.')
         
         overall_average = db.execute(
             'SELECT * FROM OVERALL_AVERAGE WHERE AccountID = ?', (id,)
         ).fetchone()
         if overall_average is None:
-            return Response(status=404, headers=cors_required_headers, response='The overall average for this user cannot be found.')
+            return Response(status=404, response='The overall average for this user cannot be found.')
 
         evaluation_text = [eval['EvalText'] for eval in user_evals]
         overall_average = overall_average['Average']
@@ -275,11 +271,11 @@ def get_evaluation_results():
         print(f'Evaluation_text: {evaluation_text}', type(evaluation_text), flush=True)
         import json
         response_body_json = json.dumps(response_body)
-        return Response(status=200, headers=cors_required_headers, response=response_body_json, content_type='application/json')
-    return Response(status=403, headers=cors_required_headers, response='Inaccessible')
+        return Response(status=200, response=response_body_json, content_type='application/json')
+    return Response(status=403, response='Inaccessible')
 
+@bp.route('/user-code', methods=['GET'], strict_slashes=False)
 @cross_origin(origins=os.getenv('FRONTEND_ENDPOINT'), supports_credentials=True)
-@bp.route('/user-code/', methods=['GET'])
 @login_required
 def view_user_code():
     if request.method == 'GET':
@@ -294,7 +290,7 @@ def view_user_code():
             ''', (id,)
         ).fetchall()
         if user_ans is None:
-            return Response(status=404, headers=cors_required_headers, response='No submissions from this user can be found.')
+            return Response(status=404, response='No submissions from this user can be found.')
 
         submission = [answer['AnswerText'] for answer in user_ans]
         response_body = {
@@ -302,7 +298,7 @@ def view_user_code():
         }
         import json
         response_body_json = json.dumps(response_body)
-        return Response(status=200, headers=cors_required_headers, response=response_body_json, content_type='application/json')
-    return Response(status=403, headers=cors_required_headers, response='Inaccessible')
+        return Response(status=200, response=response_body_json, content_type='application/json')
+    return Response(status=403, response='Inaccessible')
 
 

@@ -118,7 +118,7 @@ To run the development server and launch Localhost, enter in the terminal: `yarn
 
 ## Flask Development Server
 
-The Flask backend of this tool is structured around a Flask _"app factory"_. Therefore, to activate the application, at the root directory of this project, enter the following command in the terminal: `flask --app flask/flaskapp run --debug --no-reload`.
+The Flask backend of this tool is structured around a Flask _"app factory"_. Therefore, to activate the application, at the root directory of this project, enter the following command in the terminal: `flask --app flask/flaskapp run --host=localhost --debug --no-reload`.
 
 The reason for `--no-reload` in the command above is that the application heavily relies on file modification while evaluating the tutees' submitted Python code. Without it, the application's file modification will automatically reload the server, and inconveniently halt the evaluation process and affect other crucial processes between front- and backend for the program to run smoothly.
 

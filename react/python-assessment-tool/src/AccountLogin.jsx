@@ -40,6 +40,7 @@ export default function AccountLogin({
         "Content-Type": "application/json",
       },
       body: JSON.stringify(submission),
+      credentials: 'include'
     };
 
     fetch(import.meta.env.VITE_FLASK_LOGIN, requestOptions).then((response) => {

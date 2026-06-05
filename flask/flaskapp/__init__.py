@@ -26,7 +26,15 @@ def create_app(test_config = None):
     
     # Enable Cross-Origin Resource Sharing (CORS)
     from flask_cors import CORS
-    CORS(app=app)
+    CORS(app=app, origins=["http://localhost:3000", "http://127.0.0.1:3000"], supports_credentials=True)
+
+    IS_DEV = os.getenv('FLASK_ENV') == 'development' or True  # Force True for local
+
+    app.config.update(
+        # On HTTP localhost, SameSite must be 'Lax' and Secure must be False for cookies to work
+        SESSION_COOKIE_SAMESITE="Lax" if IS_DEV else "None",
+        SESSION_COOKIE_SECURE=False if IS_DEV else True
+    )
     
     # URL rule for index
     app.add_url_rule('/', endpoint='index')

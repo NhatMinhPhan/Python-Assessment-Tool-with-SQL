@@ -32,7 +32,9 @@ function App({ getSessionUsername, getSessionUserId, clearLoginSession }) {
     // Fetch visibility information from the server,
     // including if the user has already submitted their answers.
     // If they have, setHasSubmitted(true).
-    fetch(import.meta.env.VITE_FLASK_EVAL_SET_VIEWABILITY)
+    fetch(import.meta.env.VITE_FLASK_EVAL_SET_VIEWABILITY, {
+      credentials: 'include' // CRITICAL
+    })
       .then((response) => response.json())
       .then((visibilityInfo) => {
         if (visibilityInfo["submitted"] === true) {
@@ -78,12 +80,16 @@ function App({ getSessionUsername, getSessionUserId, clearLoginSession }) {
     }
 
     if (hasSubmitted) {
-      fetch(import.meta.env.VITE_FLASK_EVAL_RESULTS)
+      fetch(import.meta.env.VITE_FLASK_EVAL_RESULTS, { 
+        credentials: 'include' // CRITICAL
+      })
         .then((response) => response.json()) //  Response is a dictionary with 1 key 'evaluation'. Get its value.
         .then((json) => {
           setEvaluationResults(json.evaluation);
         });
-      fetch(import.meta.env.VITE_FLASK_EVAL_USERCODE)
+      fetch(import.meta.env.VITE_FLASK_EVAL_USERCODE, { 
+        credentials: 'include' // CRITICAL
+      })
         .then((response) => response.json()) //  Response is a dictionary with 1 key 'submission'. Get its value.
         .then((json) => {
           arrOfAnswers.current = json.submission;
@@ -98,7 +104,7 @@ function App({ getSessionUsername, getSessionUserId, clearLoginSession }) {
     return () => {
       console.log("The user hasn't logged in or has logged out.");
     };
-  }, [hasSubmitted]); // Empty dependency array ensures it runs only once on mount
+  }, [hasSubmitted, questionNumber]);
 
   const updateCurrentAnswer = () => {
     const copy = arrOfAnswers.current.slice();
@@ -124,7 +130,8 @@ function App({ getSessionUsername, getSessionUserId, clearLoginSession }) {
     submission["id"] = USER_ID + ""; // id must be a string
 
     const requestOptions = {
-      method: "PUT",
+      method: "POST",
+      credentials: 'include', // CRITICAL: Tells the browser to send the Flask session cookie
       headers: {
         "Content-Type": "application/json",
       },
@@ -187,7 +194,9 @@ function App({ getSessionUsername, getSessionUserId, clearLoginSession }) {
   };
 
   const logout = () => {
-    fetch(import.meta.env.VITE_FLASK_LOGOUT).then((response) => {
+    fetch(import.meta.env.VITE_FLASK_LOGOUT, { 
+      credentials: 'include' // CRITICAL
+    }).then((response) => {
       if (response.status === 200) {
         setLoggedIn(false);
         clearLoginSession(); // Passed as an argument from main.jsx
