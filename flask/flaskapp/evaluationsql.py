@@ -37,9 +37,9 @@ def put_into_database(answer_list: list, endpoint: str):
         print('len(answer_list) != number_of_questions', flush=True)
         abort(404, 'Improper admin setup')
 
-    enumerated_answers = list(enumerate(answer_list, start=1))
+    enumerated_answers = list(enumerate(answer_list, start=0))
 
-    print('Now putting answers into the SQLite!!!', flush=True)
+    print('Now putting answers into the SQLite...', flush=True)
     
     try:
         account_id = g.user['AccountID']

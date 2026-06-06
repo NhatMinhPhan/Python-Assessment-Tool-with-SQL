@@ -1,6 +1,31 @@
 from typing import Union, List
-from flaskapp.dbsql import get_db
 import os
+
+from pathlib import Path
+import sys
+
+# Dynamically locate your virtual environment's site-packages
+# We need to climb up 5 levels to reach the root where 'venv' lives.
+project_root = Path(__file__).resolve().parents[4] 
+venv_site_packages = project_root / "venv" / "Lib" / "site-packages"
+
+# Inject this path at index 0 so Python checks it first
+if venv_site_packages.exists():
+    sys.path.insert(0, str(venv_site_packages))
+else:
+    # Fallback debug print if your venv folder is named differently (e.g., .venv)
+    print(f"JUDGE DEBUG: Could not find venv at {venv_site_packages}", flush=True)
+
+# Get the absolute path of the flaskapp directory
+flask_root_dir = Path(__file__).resolve().parents[3]
+sys.path.insert(1, str(flask_root_dir))
+
+from flaskapp import create_app 
+from flaskapp.dbsql import get_db
+
+# Initialize a temporary app instance for this process
+# This configures a local app instance matching your production/development settings
+app = create_app()
 
 # In each 'examination_<number>' folder, there are only 2 files: judge.py & response.py.
 # Find respective 'response.py' in this 'examination' folder
@@ -51,7 +76,7 @@ def get_user_id_and_question() -> dict[str, int]:
     Returns:
         A user ID string
     """
-    regex_pattern = r'# ID: (?P<id>.*?) - Question: (?P<question>\d+)'
+    regex_pattern = r'# ID: (?P<id>.*?) - Question (?P<question>\d+)'
     with open('response.py', 'r') as file:
         first_line = file.readline().strip()
         
@@ -342,4 +367,5 @@ else:
     displayable_results.append('TEST CASES:')
     import sys
     sys.path.append(os.getenv('VENV_LIB_DIRECTORY'))
-    run()
+    with app.app_context():
+        run()

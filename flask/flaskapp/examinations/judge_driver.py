@@ -6,6 +6,7 @@ Activates and runs judge.py files.
 
 import subprocess
 import os
+import sys
 
 has_logged_in = True
 
@@ -20,11 +21,12 @@ def run_judge(subfolder_name: str) -> bool:
 
     # Run judge.py in the passed subfolder
     path_to_subfolder = f"{os.getcwd()}\\{subfolder_name}"
-    command = ["python", "judge.py"]
+    command = [sys.executable, "judge.py"]
     subprocess.run(
         command,
         cwd = path_to_subfolder,
-        capture_output=False
+        capture_output=False,
+        env=os.environ.copy()
     )
 
     print('judge_driver.py terminating...')
