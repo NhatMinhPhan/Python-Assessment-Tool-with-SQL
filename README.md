@@ -2,11 +2,13 @@ This application is created for experiential purposes and not for professional u
 
 # Python Assessment Tool
 
-This tool aims to aid tutors in assessing their tutees' Python knowledge and skills with a Microsoft Azure SQL server and database. It consists of account registration and login features in the front end which stores each tutee's individual answers and results while securing their privacy from each other.
+This tool aims to aid tutors in assessing their tutees' Python knowledge and skills with a SQLite database. It consists of account registration and login features in the front end which stores each tutee's individual answers and results while securing their privacy from each other.
 
-For this iteration of the application, it is used as follows: The tutor sets up a JSON server with a .json file, 2 separate .env files for the front- and back-end, a development server or server of another type to run the React code, and another development server to run the Flask code. In total, at least 3 servers are needed to operate the whole program. Then, one is expected to generate two Localhost tunnels, with [pinggy.io](https://pinggy.io/) for example, for tutees to access the application.
+For this iteration of the application, it is used as follows: The tutor sets up a SQLite database, 2 separate .env files for the front- and back-end, a development server or server of another type to run the React code, and another development server to run the Flask code. In total, at least 3 servers are needed to operate the whole program. Then, one is expected to generate two Localhost tunnels, with [pinggy.io](https://pinggy.io/) for example, for tutees to access the application.
 
 ## Requirements
+
+At the root directory, run `npm install` to fetch all the packages.
 
 Besides React, Flask and the latter's accompanying packages, to properly use this application, the following packages must be installed with [pip](https://pypi.org/project/pip/) and [npm](https://nodejs.org/en/learn/getting-started/an-introduction-to-the-npm-package-manager).
 
@@ -26,24 +28,6 @@ Create a `db.json` file in a folder called `instance` in the `flask` directory (
 Subsequently, enter the following command in the terminal: `json-server flask/instance/db.json` at the root directory of this project, or `json-server db.json` if your current working directory is `flask/instance/`. Otherwise, modify the command according to whatever directory which you are working with.
 
 **NOTE**: Even with encrypted data thanks to Flask and its accompanying packages and modules, users' credentials (usernames, passwords) are currently **not** stored securely and privately due to the manner of storage of the database used (JSON database). Operate with caution and care.
-
-### Structure
-
-Copy and paste the following block into db.json.
-
-```
-{
-    "admin-data": [
-    {
-      "id": "1025",
-      "answers_viewable": false,
-      "evaluation_viewable": true
-    }
-    ]
-    "accounts": [],
-    "user_answers": []
-}
-```
 
 #### Admin data (`"admin-data"`)
 
