@@ -1,4 +1,4 @@
-This application is created for experiential purposes and not for professional use.
+Released under the GNU AGPLv3 license, this application is created for experiential purposes and not for professional use.
 
 # Python Assessment Tool
 
@@ -23,18 +23,38 @@ In addition, a **virtual environment** (_venv_) must be created and activated to
 
 ### Summary
 
-Create a `db.json` file in a folder called `instance` in the `flask` directory (in other words, `flask/instance/`). Create the aforesaid `instance` folder if it does not exist yet.
+At the root directory of this project, run the following command to create a SQLite database, `flaskapp.sqlite`:
 
-Subsequently, enter the following command in the terminal: `json-server flask/instance/db.json` at the root directory of this project, or `json-server db.json` if your current working directory is `flask/instance/`. Otherwise, modify the command according to whatever directory which you are working with.
+```
+flask --app flask/flaskapp init-db
+```
 
-**NOTE**: Even with encrypted data thanks to Flask and its accompanying packages and modules, users' credentials (usernames, passwords) are currently **not** stored securely and privately due to the manner of storage of the database used (JSON database). Operate with caution and care.
+This database file will then appear in `flask/instance`.
 
-#### Admin data (`"admin-data"`)
+#### Setting up admin data (`"admin-data"`)
 
-`"answers_viewable"`: `true` if the administrator/tutor allows tutees to view their submitted code (which they cannot edit), `false` to disable the visibility of the submitted code\
-`"evaluation_viewable'`: `true` if the administrator/tutor allows tutees to view the results of the application's evaluation of their code, `false` to disable the visibility of the evaluation results
+After setting up `flaskapp.sqlite` above, run, or modify and then run `adminsetup.sql` to set up customizable admin data.
 
-Note that the `"id"` in `"admin-data"` has no practical and considerable use or significance in the operations of this assessment tool, so it can be other than `"1025"`. However, it **should** not be removed, as it potentially allows the block containing `"answers_viewable"` and `"evaluation_viewable"` to be deemed as an item of the `"admin-data"` array.
+If you are to modify `adminsetup.sql`, retain the following information <u>**except**</u> _the values in the parentheses after VALUES_:
+
+```
+DELETE FROM ADMIN_DATA;
+
+INSERT INTO ADMIN_DATA
+    (AdminID, AnswersAreViewable, EvalsAreViewable)
+VALUES
+    (1, 0, 1);
+```
+
+Here is what each value in the parentheses means in the order shown above, so as to modify admin settings to the tutor/administrator's liking:
+
+- `AdminID`: `1` by default, a placeholder for the only row in `ADMIN_DATA`, which is used to store admin settings for the only administrator running this program locally (the tutor).
+
+**Note:** `ADMIN_DATA` may have more than 1 row, but multiple administrators on 1 machine are currently <u>**NOT**</u> supported!
+
+- `AnswersAreViewable`: `1` if the administrator/tutor allows tutees to view their submitted code (which they cannot edit), `0` to disable the visibility of the submitted code
+
+- `EvalsAreViewable`: `1` if the administrator/tutor allows tutees to view the results of the application's evaluation of their code, `0` to disable the visibility of the evaluation results
 
 ## .env Files
 
@@ -66,13 +86,11 @@ The `.env.local` file _(the former of the aforementioned .env files)_ must consi
 
 The `.env` file _(the latter of the aforementioned .env files)_ must include the following:
 
-`SUBMISSIONS_ENDPOINT`: JSON server endpoint that stores users' submissions of their code\
-`ACCOUNTS_ENDPOINT`: JSON server endpoint that stores users' credentials\
-`LOGIN_REQUIRED_ENDPOINT`: Link to the **login page** of the React app (frontend)\
-`ADMINDATA_ENDPOINT`: JSON server endpoint that stores admininstrative data, **specifically** visibility settings of certain frontend components\
+`FRONTEND_ENDPOINT`: The domain of the React front end\
 `CENSORED_DIRECTORY_SECTION`: The text needed to censor out when displayed on the frontend (specifically the beginning of the directory, which sees), which is then replaced with an ellipsis (...)\
 `FLASKAPP_CONTENT_DIRECTORY`: The directory (**absolute** path) where the entire content of `flaskapp` is found (e.g. `flask/flaskapp`)\
-`VENV_LIB_DIRECTORY`: The directory (**absolute** path) where the libraries and packages are found in the **virtual environment** (_venv_)
+`VENV_LIB_DIRECTORY`: The directory (**absolute** path) where the libraries and packages are found in the **virtual environment** (_venv_)\
+`FLASK_ENV`: If this is set to `development` in the `.env` for Flask or is missing from the file (_the following settings are implemented automatically in this case_), on HTTP localhost (used by the Flask Development Server, which is to be further elaborated about in its own section), `SESSION_COOKIES_SAMESITE` must be `'Lax'` and `SESSION_COOKIES_SECURE` must be `False` in order to make session cookies work. If it is set to any value other than `development`, `SESSION_COOKIES_SAMESITE` will be set to `'None'` and `SESSION_COOKIES_SECURE` to `True`.
 
 ## Assessment Setup
 
@@ -102,9 +120,19 @@ To run the development server and launch Localhost, enter in the terminal: `yarn
 
 ## Flask Development Server
 
-The Flask backend of this tool is structured around a Flask _"app factory"_. Therefore, to activate the application, at the root directory of this project, enter the following command in the terminal: `flask --app flask/flaskapp run --host=localhost --debug --no-reload`.
+The Flask backend of this tool is structured around a Flask _"app factory"_. Therefore, to activate the application, at the root directory of this project, enter the following command in the terminal:
 
-The reason for `--no-reload` in the command above is that the application heavily relies on file modification while evaluating the tutees' submitted Python code. Without it, the application's file modification will automatically reload the server, and inconveniently halt the evaluation process and affect other crucial processes between front- and backend for the program to run smoothly.
+```
+flask --app flask/flaskapp run --host=localhost --debug --no-reload
+```
+
+The `--host=localhost` option is included to force the Flask development server (_which is to be explained in its own section below_) to explicitly display `localhost` in the terminal endpoint instead of the default IP address. <u>**NOTE**</u> that it may be omitted in the following contexts:
+
+- If the `VITE_FLASK_` variables in your `.env.local` for the React front end include the word `localhost` in the URLs/Flask server routes (_e.g. http://localhost:5000_), do <u>**NOT**</u> omit `--host=localhost`!
+- Otherwise, if they use the default IP address or alternatives to displaying `localhost` in the URLs/Flask server routes, <u>**OMIT**</u> `--host=localhost`!
+- In summary, it depends on how you configure the `VITE_FLASK_` variables in your `.env.local` for the React front end.
+
+The reason for the `--no-reload` flag in the command above is that the application heavily relies on file modification while evaluating the tutees' submitted Python code. Without it, the application's file modification will automatically reload the server, and inconveniently halt the evaluation process and affect other crucial processes between front- and backend for the program to run smoothly.
 
 ## Localhost Tunnel (yet to be tested)
 
@@ -118,9 +146,42 @@ The .env files will presumably have to be adjusted according to the URLS of the 
 
 While the JSON server is running, you can interact with the JSON database by entering Click commands in the terminal (separate from the one running the servers). At the root directory of this project, enter `flask --app flask/flaskapp <click-command>`, swapping `<click-command>` with the following commands currently supported by this application:
 
-- `db-new`: This command creates or overwrites the `db.json` file in `flask/instance`.
-- `db-clearallanswers`: This command clears all submission data of every user, including their submitted code, their evaluation results and their overall average score.
-- `db-resetall`: This command resets the entire JSON database managed by `flask/instance/db.json`, clearing all user data and credentials (usernames, passwords, submissions, etc.).
+- `init-db`: This command creates or overwrites the `flaskapp.sqlite` file in `flask/instance`, effective resetting the entire SQLtie database and erasing all data including usernames, passwords, submissions, etc.
+- `clear-answers`: This command clears all submitted answers stored in the database, alongside evaluation results and overall average scores.
+- `clear-evals`: This command clears all answers stored in the database, alongside overall average scores.
+- `clear-averages`: This command clears all average scores
+- `restore-admin`: This command resets all admin settings to the default, which is illustrated with the SQL statement below:
+
+```
+UPDATE ADMIN_DATA
+SET AnswersAreViewable = 0, EvalsAreViewable = 1
+WHERE AdminID = 1;
+```
+
+- `set-admin`: This command customizes admin settings, using the syntax below:
+
+```
+flask --app flask/flaskapp set-admin [OPTIONS]
+
+OPTIONS:
+   -a, --answer
+      Set visibility of the user/tutee's finalized answers to the tutees after they submit them.
+      Set to 1, true, t, yes, y, on to make answers visible to them.
+      Set to 0, false, f, no, n, off to make them invisible.
+
+
+   -e, --evals
+      Set visibility of the evaluation results for the user/tutee's answers to the tutees after they submit them.
+      Set to 1, true, t, yes, y, on to make the evaluation results visible to them.
+      Set to 0, false, f, no, n, off to make them invisible.
+
+EXAMPLES:
+   flask --app flask/flaskapp set-admin -a 1 -e 0
+   flask --app flask/flaskapp set-admin --answers 0
+   flask --app flask/flaskapp set-admin -e 0
+   flask --app flask/flaskapp set-admin --evals 0 -a 0
+   flask --app flask/flaskapp set-admin --answers 1 --evals 1
+```
 
 ## Front-end / Instructions for Tutees
 
