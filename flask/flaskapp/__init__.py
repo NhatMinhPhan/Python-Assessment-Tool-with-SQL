@@ -28,7 +28,7 @@ def create_app(test_config = None):
     from flask_cors import CORS
     CORS(app=app, origins=["http://localhost:3000", "http://127.0.0.1:3000"], supports_credentials=True)
 
-    IS_DEV = os.getenv('FLASK_ENV') == 'development' or True  # Force True for local
+    IS_DEV = os.getenv('FLASK_ENV') == 'development' or True  # Force True for local hosting
 
     app.config.update(
         # On HTTP localhost, SameSite must be 'Lax' and Secure must be False for cookies to work

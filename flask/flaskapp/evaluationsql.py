@@ -16,7 +16,7 @@ from flaskapp.dbsql import get_db
 import sys
 sys.path.append(os.getenv('FLASKAPP_CONTENT_DIRECTORY'))
 
-def put_into_database(answer_list: list, endpoint: str):
+def put_into_database(answer_list: list):
     """ PUT 'answers' item into the database """
     db = get_db()
 
@@ -187,8 +187,7 @@ def submit():
         print(f"Putting {id}'s submission into the database...")
         answers : List = request.json['answers']
         print(f"{id}:\n{answers}")
-        url = f"{os.getenv('SUBMISSIONS_ENDPOINT')}{id}"
-        put_into_database(answers, url)
+        put_into_database(answers)
         print("Launching evaluation...")
         launch_evaluation(id = id, answer_list = answers)
         print("Completing evaluation...")
