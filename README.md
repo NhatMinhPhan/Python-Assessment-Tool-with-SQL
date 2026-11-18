@@ -19,7 +19,7 @@ Besides React, Flask and the latter's accompanying packages, to properly use thi
 
 In addition, a **virtual environment** (_venv_) must be created and activated to start 3 servers described below and run this application. Specifically, enter the following in the terminal: `python -m venv venv`. Next, run `venv/Scripts/activate` to activate the newly-created virtual environment. Once you finish, proceed to the instructions below.
 
-## JSON Server & Database
+## Flask Server & Database
 
 ### Summary
 
